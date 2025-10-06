@@ -42,7 +42,7 @@ const changePassword = async (req, res) => {
     user.password = hashedPassword;
     user.api_token = generateToken();
     await user.save();
-    res.status(200).send("تم تغيير كلمة المرور بنجاح");
+    res.status(200).send({ message: "تم تغيير كلمة المرور بنجاح" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
