@@ -1,11 +1,9 @@
 const User = require("../models/UserModel");
 const generateToken = require("../utils/token");
 const { hashPassword, isValidPassword } = require("../utils/hashing");
-const sendResetCode = require("../utils/sendResetCodeLink");
-const sendResetLink = require("../utils/sendResetCodeLink");
 
 const registerUser = async (req, res) => {
-  const { email, password, name, phone, phone2 } = req.query;
+  const { email, password, name } = req.query;
   try {
     let user = await User.findOne({ email });
     if (user) {
@@ -16,9 +14,7 @@ const registerUser = async (req, res) => {
       const hashedPassword = await hashPassword(password);
       user = new User({
         email,
-        phone,
         name,
-        phone2,
         password: hashedPassword,
         api_token: generateToken(),
       });
@@ -30,6 +26,23 @@ const registerUser = async (req, res) => {
         api_token: user.api_token,
       });
     }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+const changePassword = async (req, res) => {
+  try {
+    const { api_token, password } = req.body;
+    const user = await User.findOne({ api_token });
+    if (!user) {
+      res.status(400).send("المستخدم غير موجود");
+    }
+    const hashedPassword = await hashPassword(password);
+
+    user.password = hashedPassword;
+    user.api_token = generateToken();
+    await user.save();
+    res.status(200).send("تم تغيير كلمة المرور بنجاح");
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -78,9 +91,9 @@ const checkEmailAndSendLink = async (req, res) => {
 
     await user.save();
 
-    await sendResetLink(email);
-
-    return res.status(200).json({ message: "Reset code sent to email" });
+    return res
+      .status(200)
+      .json({ message: "Reset code sent to email", api_token: user.api_token });
   } catch (error) {
     console.error("Reset password error:", error);
     return res
@@ -92,6 +105,6 @@ const checkEmailAndSendLink = async (req, res) => {
 module.exports = {
   loginController,
   registerUser,
-  sendResetCode,
   checkEmailAndSendLink,
+  changePassword,
 };
